@@ -3,10 +3,6 @@
 A liquid staking protocol for Stellar (XLM) built on Soroban. Users stake XLM to receive sXLM, participate in validator delegation, and access lending, liquidity pools, governance, and leverage features.
 
 ---
-## Live links
-Deployed live link - https://stellofi.vercel.app/
-Live Video Link - https://x.com/stello_fi/status/2026176292203405473?s=20
-Live status - https://x.com/stello_fi
 ## Architecture
 
 The project is a monorepo with three main components:
@@ -133,9 +129,12 @@ Default dev server: `http://localhost:5173`.
 | `JWT_EXPIRES_IN` | JWT expiry (e.g. `24h`) |
 | `GOVERNANCE_WEBHOOK_URL` | Optional webhook for governance events |
 | `SLACK_WEBHOOK_URL` | Optional Slack webhook |
-| `COLLATERAL_ASSETS` | JSON array of collateral definitions (address, CF, symbol, and an `oracle` block). Keeper bot will register and update these assets. Example: `[{"assetId":"CAW2DRMOI3CCJWKVMEUWYJUEQHXB4S4DR72HNL2DWQCMQQUH3LFFVLHV","symbol":"USDC","collateralFactorBps":9000,"oracle":{"type":"dex","assetCode":"USDC","assetIssuer":"GCA6FJY4E5VJOWKVDGJR6L3YZBIZXVOEEXQHCUN2CNLFBX4YK2HLGNPA"}}]` |
+| `COLLATERAL_ASSETS` | JSON array of collateral definitions with `assetId`, `symbol`, `collateralFactorBps`, and optional `initialPrice`/`oracle`. Keeper bot uses this to call `add_collateral_asset` for each entry and keep `update_asset_price` synchronized. Example: `[{"assetId":"CAW2DRMOI3CCJWKVMEUWYJUEQHXB4S4DR72HNL2DWQCMQQUH3LFFVLHV","symbol":"USDC","collateralFactorBps":9000,"oracle":{"type":"dex","assetCode":"USDC","assetIssuer":"GCA6FJY4E5VJOWKVDGJR6L3YZBIZXVOEEXQHCUN2CNLFBX4YK2HLGNPA"}}]` |
 
-Set `COLLATERAL_ASSETS` to register any non-sXLM asset. Each entry needs an `assetId`, `symbol`, and `collateralFactorBps`, plus an `oracle` (`type: "dex"` with `assetCode`/`assetIssuer`, or `type: "fixed"` for a static price). The keeper bot will call the lending contract’s `add_collateral_asset`/`update_asset_price` methods and keep the oracle price in sync via Horizon order books.
+Set `COLLATERAL_ASSETS` to register any non-sXLM asset. Each entry needs:
+1. `assetId`, `symbol`, `collateralFactorBps` (0–10 000). `initialPrice` is optional and is only used when registering the asset.
+2. `oracle`: either `{ "type": "dex", "assetCode": "USDC", "assetIssuer": "...") }` to poll a Horizon order book, or `{ "type": "fixed", "price": 1.0 }` for static feeds.
+The keeper bot now handles this array at startup, registers any missing collateral via `add_collateral_asset`, and wakes every minute to refresh prices by calling `update_asset_price` when the on-chain value lags the computed dex/fixed price. This keeps the lending contract aware of asset-specific collateral factors and oracle prices, enabling multi-asset positions without manual admin transactions.
 
 ### Frontend (`frontend/.env`)
 
