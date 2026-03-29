@@ -1,0 +1,16 @@
+node_modules/
+backend/node_modules/
+frontend/node_modules/
+sdk/node_modules/
+backend/dist/
+frontend/dist/
+frontend/src/vite-env.d.ts
+backend/.pgdata/
+backend/postgres.log
+*.log
+*.tsbuildinfo
+*.d.ts.map
+*.js.map
+*.lock
+*.tgz
+dist/
